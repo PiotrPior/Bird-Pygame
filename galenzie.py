@@ -7,7 +7,7 @@ class Branch:
         self.width = width
         self.height = height
         self.speed = speed
-        self.color = (139, 69, 19)  # Kolor brązowy
+        self.color = (139, 69, 19)  # Brązowy
 
     def move(self):
         """Przesuwa gałąź w dół."""
