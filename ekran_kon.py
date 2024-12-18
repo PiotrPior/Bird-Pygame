@@ -1,18 +1,19 @@
 import pygame
 
-# Funkcja wyświetlająca ekran końcowy
-def show_game_over_screen(final_score, screen, font, high_score):
-    screen.fill((0, 0, 0))  # Czarny ekran
-    game_over_text = font.render("Game Over!", True, (255, 255, 255))
-    score_text = font.render(f"Score: {final_score}", True, (255, 255, 255))
-    high_score_text = font.render(f"Best: {high_score}", True, (255, 255, 255))
-    retry_text = font.render("Press R to Retry", True, (255, 255, 255))
+def show_game_over_screen(screen, font, score, best_score):
+    """Wyświetla ekran końcowy."""
+    screen.fill((0, 0, 0))  # Czarne tło
 
-    # Rysowanie tekstu na ekranie
-    screen.blit(game_over_text, (screen.get_width() // 2 - 100, screen.get_height() // 2 - 100))
-    screen.blit(score_text, (screen.get_width() // 2 - 100, screen.get_height() // 2 - 50))
-    screen.blit(high_score_text, (screen.get_width() // 2 - 100, screen.get_height() // 2))
-    screen.blit(retry_text, (screen.get_width() // 2 - 150, screen.get_height() // 2 + 100))
+    game_over_text = font.render("Game Over", True, (255, 0, 0))
+    score_text = font.render(f"Your Score: {score}", True, (255, 255, 255))
+    best_score_text = font.render(f"Best Score: {best_score}", True, (255, 255, 0))
+    restart_text = font.render("Press R to Restart", True, (255, 255, 255))
+
+    screen.blit(game_over_text, (screen.get_width() // 2 - game_over_text.get_width() // 2, 300))
+    screen.blit(score_text, (screen.get_width() // 2 - score_text.get_width() // 2, 400))
+    screen.blit(best_score_text, (screen.get_width() // 2 - best_score_text.get_width() // 2, 450))
+    screen.blit(restart_text, (screen.get_width() // 2 - restart_text.get_width() // 2, 600))
+
     pygame.display.flip()
 
     waiting = True
