@@ -2,126 +2,144 @@ import pygame
 import sys
 import random
 from galenzie import Branch
-from ekran_kon import show_game_over_screen  # Importujemy funkcję z pliku ekran_kon.py
+from ekran_kon import show_game_over_screen
+import os
 
 pygame.init()
 
-# Ustawienia ekranu
+# Wymiary ekranu
 screen_width, screen_height = 720, 1280
 screen = pygame.display.set_mode((screen_width, screen_height))
 pygame.display.set_caption("First Game")
 
-# Wczytanie grafik
+# Tło i ptak
 background = pygame.image.load("c:/Users/piotr/Documents/2a/pygame/tlo.jpg")
-bird = pygame.image.load("c:/Users/piotr/Documents/2a/pygame/ptak.png")
-bird = pygame.transform.scale(bird, (196, 146))
-
-# Pozycja ptaka
-bird_x, bird_y = screen_width // 2, screen_height - 250
-bird_speed = 8
-
-# Gałęzie
-branches = []
-branch_speed = 5
-branch_height = 30
-branch_spawn_delay = 1500  # co ile nowa
-last_spawn_time = pygame.time.get_ticks()
+bird_image = pygame.image.load("c:/Users/piotr/Documents/2a/pygame/ptak.png")
+bird_image = pygame.transform.scale(bird_image, (196, 146))
 
 # Wyniki
 score = 0
-high_score = 0  # najlepszy wynik
+best_score = 0
 font = pygame.font.Font(None, 50)
 
-# Ładowanie najlepszego wyniku z pliku
-try:
-    with open("high_score.txt", "r") as file:
-        high_score = int(file.read())
-except FileNotFoundError:
-    high_score = 0
+# Parametry ptaka i gałęzi
+bird_x, bird_y = screen_width // 2, screen_height - 250
+bird_speed = 8
+bird_mask = pygame.mask.from_surface(bird_image)
+branches = []
+branch_speed = 5
+branch_spawn_delay = 1500
+last_spawn_time = pygame.time.get_ticks()
 
-# Główna pętla gry
 running = True
 clock = pygame.time.Clock()
 
-# Lista do przechowywania stanów, które gałęzie zostały ominięte
-passed_branches = []
+# Funkcja resetująca stan gry
+def reset_game():
+    global bird_x, bird_y, score, branches, last_spawn_time
+    bird_x, bird_y = screen_width // 2, screen_height - 250
+    score = 0
+    branches = []
+    last_spawn_time = pygame.time.get_ticks()
 
+# Funkcja wczytująca najlepszy wynik z pliku
+def load_best_score():
+    if os.path.exists("best_score.txt"):
+        with open("best_score.txt", "r") as file:
+            return int(file.read())
+    return 0  # Domyślny najlepszy wynik to 0, jeśli plik nie istnieje
+
+# Funkcja zapisująca najlepszy wynik do pliku
+def save_best_score(score):
+    with open("best_score.txt", "w") as file:
+        file.write(str(score))
+
+# Wczytanie najlepszego wyniku z pliku
+best_score = load_best_score()
+
+# Główna pętla gry
 while running:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            running = False
+    # Resetowanie gry po zakończeniu
+    reset_game()
 
-    # Poruszanie ptakiem
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT] and bird_x > 0:
-        bird_x -= bird_speed
-    if keys[pygame.K_RIGHT] and bird_x < screen_width - bird.get_width():  # zeby nie wychodziło poza ekran
-        bird_x += bird_speed
+    while True:  # Pętla gry
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-    # Generowanie gałęzi
-    current_time = pygame.time.get_ticks()
-    if current_time - last_spawn_time > branch_spawn_delay:
-        gap = random.randint(200, 300)  # Większy gap (przerwa)
-        branch_type = random.choice(["left", "right", "both"])
+        # Poruszanie ptaka
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_LEFT] and bird_x > 0:
+            bird_x -= bird_speed
+        if keys[pygame.K_RIGHT] and bird_x < screen_width - bird_image.get_width():
+            bird_x += bird_speed
 
-        if branch_type == "left":
-            # Gałąź tylko z lewej strony
-            max_left_length = screen_width // 2 - gap
-            left_length = random.randint(300, max_left_length if max_left_length > 300 else 300)
-            branches.append(Branch(0, 0, left_length, branch_height, branch_speed))
+        # Generowanie gałęzi
+        current_time = pygame.time.get_ticks()
+        if current_time - last_spawn_time > branch_spawn_delay:
+            gap = random.randint(200, 300)  # Przerwa między gałęziami
+            branch_type = random.choice(["left", "right", "both"])
 
-        elif branch_type == "right":
-            # Gałąź tylko z prawej strony
-            max_right_length = screen_width // 2 - gap
-            right_length = random.randint(300, max_right_length if max_right_length > 300 else 300)
-            branches.append(Branch(screen_width - right_length, 0, right_length, branch_height, branch_speed))
+            if branch_type == "left":
+                left_length = random.randint(200, min(500, screen_width // 2))
+                branches.append(Branch(0, 0, left_length, 30, branch_speed))
+            elif branch_type == "right":
+                right_length = random.randint(200, min(500, screen_width // 2))
+                branches.append(Branch(screen_width - right_length, 0, right_length, 30, branch_speed))
+            elif branch_type == "both":
+                gap_between = random.randint(200, 300)
+                left_length = random.randint(200, screen_width // 2 - gap_between // 2)
+                right_length = random.randint(200, screen_width // 2 - gap_between // 2)
+                branches.append(Branch(0, 0, left_length, 30, branch_speed))
+                branches.append(Branch(screen_width - right_length, 0, right_length, 30, branch_speed))
 
-        elif branch_type == "both":
-            # Gałęzie z obu stron
-            max_left_length = screen_width // 2 - gap
-            max_right_length = screen_width // 2 - gap
-            left_length = random.randint(200, max_left_length if max_left_length > 200 else 200)
-            right_length = random.randint(200, max_right_length if max_right_length > 200 else 200)
-            branches.append(Branch(0, 0, left_length, branch_height, branch_speed))
-            branches.append(Branch(screen_width - right_length, 0, right_length, branch_height, branch_speed))
+            last_spawn_time = current_time
 
-        last_spawn_time = current_time
+        # Rysowanie
+        screen.blit(background, (0, 0))
+        screen.blit(bird_image, (bird_x, bird_y))
 
-    # Rysowanie
-    screen.blit(background, (0, 0))
-    for branch in branches[:]:
-        branch.move()
-        branch.draw(screen)
+        # Aktualizacja gałęzi
+        for branch in branches[:]:
+            branch.move()
+            branch.draw(screen)
+            if branch.off_screen(screen_height):
+                branches.remove(branch)
+                score += 1  # Dodanie punktu za ominięcie przeszkody
 
-        # Sprawdzanie, czy gałąź wyszła poza ekran
-        if branch.off_screen(screen_height):
-            if branch not in passed_branches:  # Sprawdzamy, czy nie naliczyliśmy już punktu za tę gałąź
-                passed_branches.append(branch)
-                score += 1  # Naliczamy punkt za ominięcie gałęzi
+        # Wyświetlanie wyników
+        score_text = font.render(f"Score: {score}", True, (255, 255, 255))
+        best_score_text = font.render(f"Best: {best_score}", True, (255, 215, 0))
+        screen.blit(score_text, (10, 10))
+        screen.blit(best_score_text, (10, 50))
 
-    screen.blit(bird, (bird_x, bird_y))
-    score_text = font.render(f"Score: {score}", True, (255, 255, 255))
-    high_score_text = font.render(f"Best: {high_score}", True, (255, 255, 255))
-    screen.blit(score_text, (10, 10))
-    screen.blit(high_score_text, (10, 50))
+        # Kolizje
+        bird_rect = pygame.Rect(bird_x, bird_y, bird_image.get_width(), bird_image.get_height())
+        for branch in branches:
+            branch_rect = pygame.Rect(branch.x, branch.y, branch.width, branch.height)
+            if bird_mask.overlap(pygame.mask.Mask((branch.width, branch.height), True), (branch.x - bird_x, branch.y - bird_y)):
+                running = False
+                best_score = max(best_score, score)
+                save_best_score(best_score)
+                show_game_over_screen(screen, font, score, best_score)
 
-    # Kolizje
-    bird_rect = pygame.Rect(bird_x, bird_y, bird.get_width(), bird.get_height())
-    for branch in branches:
-        branch_rect = pygame.Rect(branch.x, branch.y, branch.width, branch.height)
-        if bird_rect.colliderect(branch_rect):  # sprawdzanie kolizji
-            if score > high_score:
-                high_score = score
-                with open("high_score.txt", "w") as file:  # zapis nowego najlepszego wyniku
-                    file.write(str(high_score))
-            show_game_over_screen(score, screen, font, high_score)  # Używamy funkcji z pliku ekran_kon.py
-            score = 0  # reset wyniku
-            passed_branches.clear()  # resetujemy listę przeoczonych gałęzi
-            branches.clear()  # usunięcie gałęzi
-            bird_x, bird_y = screen_width // 2, screen_height - 250  # reset pozycji ptaka
+                # Po zakończeniu gry czekamy na naciśnięcie R do restartu
+                waiting = True
+                while waiting:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            pygame.quit()
+                            sys.exit()
+                        if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
+                            reset_game()  # Reset gry do początku
+                            waiting = False
+                            break
 
-    pygame.display.flip()
-    clock.tick(60)
+                break
+
+        pygame.display.flip()
+        clock.tick(60)
 
 pygame.quit()
 sys.exit()
